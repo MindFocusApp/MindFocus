@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="MindFocus - Planifica, memoriza y estudia de forma inteligente" />
+  <title>MindFocus · Estudio inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="auth-locked">
+  <!-- PANTALLA DE PERFIL / ACCESO -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-icon">📚</span>
+        <span class="logo-text">MindFocus</span>
+      </div>
+      <p class="auth-tagline">Planificá, memorizá y estudiá de forma inteligente</p>
+
+      <div id="authRegister" class="auth-panel">
+        <h2>Creá tu perfil</h2>
+        <p class="card-desc">Este perfil se guarda solo en este navegador. El nombre de usuario se usa en las salas de estudio.</p>
+        <form id="registerForm" autocomplete="off">
+          <div class="form-row">
+            <label for="regUser">Nombre de usuario *</label>
+            <input type="text" id="regUser" maxlength="24" required autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Ej: Sofi" />
+          </div>
+          <div class="form-row">
+            <label for="regPass">Contraseña *</label>
+            <input type="password" id="regPass" minlength="4" required autocomplete="new-password" placeholder="Mínimo 4 caracteres" />
+          </div>
+          <div class="form-row">
+            <label for="regPass2">Repetir contraseña *</label>
+            <input type="password" id="regPass2" minlength="4" required autocomplete="new-password" />
+          </div>
+          <p class="hint auth-error hidden" id="regError" role="alert"></p>
+          <button type="submit" class="btn primary btn-lg">Crear perfil y entrar</button>
+        </form>
+      </div>
+
+      <div id="authLogin" class="auth-panel hidden">
+        <h2>Ingresá a tu perfil</h2>
+        <p class="card-desc">Hola, <strong id="loginUserLabel"></strong>. Cada usuario tiene sus propios exámenes y apuntes.</p>
+        <form id="loginForm" autocomplete="on">
+          <div class="form-row">
+            <label for="loginUserSelect">Usuario</label>
+            <select id="loginUserSelect" aria-label="Elegir usuario"></select>
+          </div>
+          <div class="form-row">
+            <label for="loginPass">Contraseña</label>
+            <input type="password" id="loginPass" required autocomplete="current-password" />
+          </div>
+          <p class="hint auth-error hidden" id="loginError" role="alert"></p>
+          <button type="submit" class="btn primary btn-lg">Entrar</button>
+        </form>
+        <div class="btn-row" style="margin-top:1rem; justify-content:center">
+          <button type="button" class="btn btn-sm" id="btnAuthNewUser">Crear otro usuario</button>
+          <button type="button" class="btn danger btn-sm" id="btnAuthLogout">Borrar este perfil</button>
+        </div>
+        <p class="hint" style="margin-top:0.75rem">«Crear otro usuario» deja los perfiles existentes. «Borrar este perfil» elimina solo ese usuario y sus datos.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR / NAV -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">📚</span>
+        <span class="logo-text">MindFocus</span>
+      </div>
+      <button class="btn-icon sidebar-close" id="sidebarClose" aria-label="Cerrar menú">✕</button>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-section="inicio">
+        <span class="nav-icon">🏠</span><span>Inicio</span>
+      </button>
+      <button class="nav-item" data-section="materias">
+        <span class="nav-icon">📖</span><span>Mis materias</span>
+      </button>
+      <button class="nav-item" data-section="calendario">
+        <span class="nav-icon">📅</span><span>Calendario</span>
+      </button>
+      <button class="nav-item" data-section="memorizar">
+        <span class="nav-icon">🧠</span><span>Memorizar</span>
+      </button>
+      <button class="nav-item" data-section="enfoque">
+        <span class="nav-icon">⏱️</span><span>Enfoque</span>
+      </button>
+      <button class="nav-item" data-section="progreso">
+        <span class="nav-icon">📊</span><span>Progreso</span>
+      </button>
+      <button class="nav-item" data-section="apuntes">
+        <span class="nav-icon">📝</span><span>Apuntes</span>
+      </button>
+      <button class="nav-item" data-section="charlas">
+        <span class="nav-icon">👥</span><span>Salas de estudio</span><span class="nav-badge hidden" id="navChatBadge">0</span>
+      </button>
+      <button class="nav-item" data-section="config">
+        <span class="nav-icon">⚙️</span><span>Configuración</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="streak-badge" id="streakBadge">
+        <span>🔥</span> <span id="streakCount">0</span> días
+      </div>
+    </div>
+  </aside>
+
+  <div class="overlay" id="overlay"></div>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
+      <h1 class="page-title" id="pageTitle">Inicio</h1>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="themeToggle" aria-label="Cambiar tema" title="Modo oscuro/claro">🌙</button>
+        <button class="btn primary btn-sm" id="btnNewExam">+ Nuevo examen</button>
+      </div>
+    </header>
+
+    <!-- RECORDATORIOS -->
+    <div class="reminders" id="reminders"></div>
+
+    <!-- SECCIÓN: INICIO -->
+    <section class="section active" id="section-inicio">
+      <div class="grid-2">
+        <div class="card hero-card" id="nextExamCard">
+          <div class="card-label">Próximo escrito</div>
+          <h2 class="hero-title" id="nextExamName">Cargando...</h2>
+          <p class="hero-meta" id="nextExamMeta"></p>
+          <div class="progress-ring-wrap">
+            <svg class="progress-ring" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="52" />
+              <circle class="ring-fill" id="prepRing" cx="60" cy="60" r="52" />
+            </svg>
+            <div class="ring-text">
+              <span id="prepPercent">0%</span>
+              <small>preparado</small>
+            </div>
+          </div>
+          <p class="next-session" id="nextSessionText">Próxima sesión: —</p>
+          <button class="btn primary btn-lg" id="btnStartStudy">Empezar a estudiar</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Modo “Tengo poco tiempo”</h3>
+          <p class="card-desc">Elegí cuánto tiempo tenés y te armamos lo más importante.</p>
+          <div class="time-chips" id="quickTimeChips">
+            <button class="chip" data-mins="10">10 min</button>
+            <button class="chip" data-mins="20">20 min</button>
+            <button class="chip" data-mins="30">30 min</button>
+            <button class="chip" data-mins="45">45 min</button>
+            <button class="chip" data-mins="60">60 min</button>
+          </div>
+          <div id="quickStudyResult" class="quick-result hidden"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.25rem">
+        <div class="card-header-row">
+          <h3 class="card-title">Hoy en tu plan</h3>
+          <span class="badge" id="todaySessionsCount">0 sesiones</span>
+        </div>
+        <div id="todayPlan" class="session-list"></div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: MATERIAS / EXÁMENES -->
+    <section class="section" id="section-materias">
+      <div class="card-header-row" style="margin-bottom:1rem">
+        <h2 class="section-heading">Mis exámenes</h2>
+        <button class="btn primary" id="btnNewExam2">+ Agregar</button>
+      </div>
+      <div id="examsList" class="exams-grid"></div>
+    </section>
+
+    <!-- SECCIÓN: CALENDARIO -->
+    <section class="section" id="section-calendario">
+      <div class="card">
+        <div class="cal-header">
+          <button class="btn-icon" id="calPrev">‹</button>
+          <h3 id="calMonthLabel">Mes</h3>
+          <button class="btn-icon" id="calNext">›</button>
+        </div>
+        <div class="cal-weekdays">
+          <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card-title">Sesiones del día seleccionado</h3>
+        <div id="calDayDetail" class="session-list"></div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: MEMORIZAR -->
+    <section class="section" id="section-memorizar">
+      <div class="card">
+        <h3 class="card-title">Práctica de memorización</h3>
+        <p class="card-desc">Elegí un examen y el tipo de práctica. En flashcards y preguntas: <kbd>Espacio</kbd> voltea o muestra la respuesta, <kbd>←</kbd>/<kbd>1</kbd> “No lo sabía”, <kbd>→</kbd>/<kbd>2</kbd> “Lo sabía”.</p>
+        <div class="form-row">
+          <label>Examen</label>
+          <select id="memoExamSelect"></select>
+        </div>
+        <div class="memo-modes">
+          <button class="mode-btn" data-mode="flashcards">🃏 Flashcards</button>
+          <button class="mode-btn" data-mode="qa">❓ Preguntas</button>
+          <button class="mode-btn" data-mode="tf">✓✗ Verdadero/Falso</button>
+          <button class="mode-btn" data-mode="mc">ABCD Opción múltiple</button>
+          <button class="mode-btn" data-mode="quiz">📝 Mini examen</button>
+          <button class="mode-btn" data-mode="mock">🎓 Simulacro (10 min)</button>
+          <button class="mode-btn" data-mode="weak">💀 Puntos débiles <span class="badge hidden" id="weakCount">0</span></button>
+        </div>
+        <p class="hint" id="mockLast"></p>
+      </div>
+
+      <div class="card hidden" id="memoCard">
+        <div class="memo-progress">
+          <span id="memoCounter">1 / 10</span>
+          <div class="bar"><div class="bar-fill" id="memoBar"></div></div>
+        </div>
+        <div id="memoContent" class="memo-content"></div>
+        <div class="memo-actions" id="memoActions"></div>
+      </div>
+
+      <!-- Simulacro de examen (se rellena por JS) -->
+      <div class="card hidden" id="mockCard"></div>
+
+      <!-- Cementerio de tarjetas -->
+      <div class="card" id="graveyardCard">
+        <div class="card-header-row">
+          <h3 class="card-title">💀 Cementerio de tarjetas</h3>
+          <span class="badge" id="graveyardBadge">0 tarjetas</span>
+        </div>
+        <p class="card-desc">Las tarjetas que más te cuestan: las fallaste y todavía no las consolidaste. Machacalas hasta sacarlas de acá.</p>
+        <div id="graveyardList" class="graveyard-list"></div>
+        <button class="btn primary" id="btnGraveyardStart" style="margin-top:0.75rem">Machacar mis puntos débiles</button>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: ENFOQUE (Timer) -->
+    <section class="section" id="section-enfoque">
+      <div class="card timer-card">
+        <h3 class="card-title">Sesión de concentración</h3>
+        <div class="timer-presets">
+          <button class="chip active" data-timer="15">15 min</button>
+          <button class="chip" data-timer="20">20 min</button>
+          <button class="chip" data-timer="25">25 min</button>
+        </div>
+        <div class="timer-display" id="timerDisplay">15:00</div>
+        <p class="timer-status" id="timerStatus">Listo para empezar</p>
+        <div class="pomodoro-cycles" id="pomodoroCycles" aria-live="polite">Ciclo Pomodoro 0 / 4</div>
+        <div class="timer-controls">
+          <button class="btn primary" id="timerStart">Iniciar</button>
+          <button class="btn" id="timerPause" disabled>Pausar</button>
+          <button class="btn" id="timerReset">Reiniciar</button>
+          <button class="btn danger" id="timerEnd" disabled>Finalizar</button>
+        </div>
+        <div class="form-row" style="margin-top:1.25rem">
+          <label>Asociar a examen (opcional)</label>
+          <select id="timerExamSelect"><option value="">— Ninguno —</option></select>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: PROGRESO -->
+    <section class="section" id="section-progreso">
+      <div class="stats-grid" id="statsGrid">
+        <!-- se llena por JS -->
+      </div>
+      <div class="grid-2" style="margin-top:1rem">
+        <div class="card">
+          <h3 class="card-title">Minutos por día</h3>
+          <p class="card-desc">Últimos 7 días de estudio registrado.</p>
+          <canvas id="chartMins" height="180"></canvas>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Curva de aprendizaje</h3>
+          <p class="card-desc">Porcentaje de aciertos por día.</p>
+          <canvas id="chartLearn" height="180"></canvas>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card-title">Logros</h3>
+        <p class="card-desc">Desbloqueá distintivos estudiando con constancia.</p>
+        <div class="achievements-grid" id="achievementsGrid"></div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card-title">Detalle por temas</h3>
+        <div id="topicsProgress"></div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: APUNTES -->
+    <section class="section" id="section-apuntes">
+      <div class="card">
+        <h3 class="card-title">Cargar apuntes</h3>
+        <p class="card-desc">Pegá tus apuntes, subí un archivo (.txt, .pdf, .docx) o una <strong>imagen</strong> (foto de apuntes, captura). MindFocus lee el texto con OCR, lo limpia, lo resume y arma tarjetas con definiciones y datos reales.
+          <br><small class="hint">💡 Tip: para fotos de cuaderno usamos un motor en la nube pensado para letra a mano (hace falta internet). Revisá siempre el texto detectado: puede confundir nombres o fechas. Mejor luz pareja y la hoja de frente.</small>
+        </p>
+        <div class="form-row">
+          <label>Asociar a examen</label>
+          <select id="notesExamSelect"></select>
+        </div>
+        <div class="form-row">
+          <label>Texto de apuntes</label>
+          <textarea id="notesText" rows="8" placeholder="Pegá aquí tus apuntes o subí una imagen para detectar el texto…"></textarea>
+        </div>
+        <div class="form-row">
+          <label>O subí / arrastrá un archivo (.txt, .pdf, .docx, imagen)</label>
+          <div class="drop-zone" id="notesDropZone">
+            <input type="file" id="notesFile" accept=".txt,.pdf,.docx,.jpg,.jpeg,.png,.webp,.gif,.bmp,image/*,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+            <p>Soltá el archivo o imagen acá, o hacé clic para elegirlo</p>
+            <p class="hint" style="margin-top:0.35rem">📷 Fotos y capturas: se detecta el texto automáticamente (español)</p>
+          </div>
+        </div>
+        <label class="check-row">
+          <input type="checkbox" id="notesUseWeb" checked />
+          <span>🌐 Completar con información de internet sobre los temas del examen (Wikipedia)</span>
+        </label>
+        <button class="btn primary" id="btnGenerateNotes">Generar material de estudio</button>
+        <p class="hint" id="notesStatus" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="card hidden" id="notesResult">
+        <h3 class="card-title">Material generado</h3>
+        <div id="notesOutput"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">🔎 Investigar un tema en internet</h3>
+        <p class="card-desc">Escribí cualquier tema, elegí el artículo correcto y se convierte en tarjetas para el examen seleccionado arriba.</p>
+        <div class="topic-add">
+          <input type="text" id="webQuery" placeholder="Ej: Fotosíntesis, Teorema de Pitágoras, Guerra Fría…" />
+          <button type="button" class="btn primary" id="btnWebSearch">Buscar</button>
+        </div>
+        <div id="webResults"></div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: SALAS DE ESTUDIO (chat P2P) -->
+    <section class="section" id="section-charlas">
+      <div class="card">
+        <div class="card-header-row">
+          <h3 class="card-title">👥 Salas de estudio</h3>
+        </div>
+        <p class="hint" id="roomStatus" role="status" aria-live="polite" style="margin-top:0">Sin conexión. Creá una sala o unite con un enlace.</p>
+        <div class="form-row" style="margin-top:0.75rem;margin-bottom:0">
+          <label>Tu usuario en las salas</label>
+          <input type="text" id="chatNick" maxlength="24" readonly class="input-readonly" title="Se toma del perfil con el que iniciaste sesión" />
+          <p class="hint">Es el nombre de usuario de tu perfil. Podés cambiarlo en Configuración.</p>
+        </div>
+      </div>
+
+      <div class="card" id="roomIdle" style="margin-top:1rem">
+        <h3 class="card-title">Estudiá con tus compañeros</h3>
+        <p class="card-desc">Chat en tiempo real, mazos de tarjetas compartidos y Pomodoro grupal. Las conexiones son directas entre navegadores (P2P): no hay servidor, no se guarda nada y los mensajes desaparecen al cerrar la pestaña.</p>
+        <button class="btn primary" id="btnCreateRoom">+ Crear sala de estudio</button>
+        <div class="form-row" style="margin-top:1.25rem">
+          <label for="roomCodeInput">¿Te invitaron? Pegá el enlace o el código</label>
+          <div class="topic-add">
+            <input type="text" id="roomCodeInput" placeholder="https://…/index.html?room=…" autocomplete="off" />
+            <button type="button" class="btn" id="btnJoinRoom">Unirme</button>
+          </div>
+        </div>
+        <details class="privacy-note">
+          <summary>Cómo funciona y qué tan privado es</summary>
+          <ul>
+            <li>Los mensajes y mazos viajan <strong>directo entre los navegadores</strong>, cifrados por WebRTC (DTLS). No pasan por ningún servidor de MindFocus.</li>
+            <li>Para que los navegadores se encuentren se usan <strong>trackers BitTorrent públicos</strong> como punto de encuentro. Ven un identificador de la sala, no tus mensajes.</li>
+            <li>Quienes estén en la sala <strong>ven tu dirección IP</strong> (así funciona WebRTC). Compartí el enlace solo con gente de confianza: <strong>quien tenga el enlace puede entrar</strong>.</li>
+            <li>Nadie puede leer tus datos locales: de tus exámenes solo se envía lo que vos elegís compartir.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div id="roomActive" class="hidden" style="margin-top:1rem">
+        <div class="chat-layout">
+          <div class="card chat-card">
+            <div class="card-header-row">
+              <h3 class="card-title">Sala <code id="roomCodeLabel"></code> <span class="badge" id="roomRoleBadge"></span></h3>
+              <div class="btn-row">
+                <button type="button" class="btn btn-sm" id="btnShowQr">📲 Invitar (QR)</button>
+                <button type="button" class="btn btn-sm danger" id="btnLeaveRoom">Salir</button>
+              </div>
+            </div>
+            <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+            <form id="chatForm" class="chat-form">
+              <input type="text" id="chatInput" maxlength="1000" placeholder="Escribí un mensaje…" autocomplete="off" aria-label="Mensaje" />
+              <button type="submit" class="btn primary">Enviar</button>
+            </form>
+            <div class="chat-deck">
+              <select id="chatDeckSelect" aria-label="Examen a compartir"></select>
+              <button type="button" class="btn btn-sm" id="btnShareDeck">📚 Compartir examen</button>
+            </div>
+          </div>
+
+          <aside class="card">
+            <h3 class="card-title">Conectados (<span id="peerCount">0</span>)</h3>
+            <ul class="peer-list" id="peerList"></ul>
+            <div id="syncRow" class="hidden">
+              <label class="check-row">
+                <input type="checkbox" id="syncTimerToggle" checked />
+                <span>⏱ Sincronizar mi Pomodoro con el anfitrión</span>
+              </label>
+            </div>
+            <p class="hint">Si el anfitrión inicia o pausa su temporizador (sección Enfoque), el de los invitados se sincroniza para estudiar y descansar juntos.</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN: CONFIG -->
+    <section class="section" id="section-config">
+      <div class="card">
+        <h3 class="card-title">Perfil</h3>
+        <p class="card-desc">Tu nombre de usuario se muestra en las salas de estudio y se guarda solo en este navegador.</p>
+        <div class="form-row">
+          <label for="cfgUsername">Nombre de usuario</label>
+          <input type="text" id="cfgUsername" maxlength="24" autocomplete="username" readonly class="input-readonly" title="Identifica tu almacén de datos; para otro nombre creá un usuario nuevo" />
+          <p class="hint">Para usar otro nombre, cerrá sesión y creá un perfil nuevo (cada usuario tiene sus propios datos).</p>
+        </div>
+        <div class="form-row">
+          <label for="cfgNewPass">Nueva contraseña (opcional)</label>
+          <input type="password" id="cfgNewPass" minlength="4" autocomplete="new-password" placeholder="Dejá vacío para no cambiarla" />
+        </div>
+        <div class="form-row">
+          <label for="cfgNewPass2">Repetir nueva contraseña</label>
+          <input type="password" id="cfgNewPass2" minlength="4" autocomplete="new-password" />
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="btnSaveProfile">Guardar perfil</button>
+          <button type="button" class="btn" id="btnLogout">Cerrar sesión</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card-title">Preferencias</h3>
+        <div class="form-row">
+          <label>Tiempo de estudio por día (minutos por defecto)</label>
+          <input type="number" id="cfgDailyMins" min="10" max="300" value="60" />
+        </div>
+        <div class="form-row">
+          <label>Notificaciones de recordatorios</label>
+          <label class="switch">
+            <input type="checkbox" id="cfgReminders" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Modo oscuro</label>
+          <label class="switch">
+            <input type="checkbox" id="cfgDark" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <button class="btn primary" id="btnSaveConfig">Guardar preferencias</button>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3 class="card-title">Datos</h3>
+        <p class="card-desc">Exportá o borrá todos los datos guardados en este navegador.</p>
+        <p class="hint" id="storageInfo" style="margin-bottom:0.75rem"></p>
+        <div class="btn-row">
+          <button class="btn" id="btnExport">Exportar JSON</button>
+          <button class="btn" id="btnExportAnki">Exportar CSV para Anki</button>
+          <button class="btn danger" id="btnReset">Borrar todo</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: NUEVO / EDITAR EXAMEN -->
+  <div class="modal-overlay hidden" id="examModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="examModalTitle">Nuevo examen</h2>
+        <button class="btn-icon" id="examModalClose">✕</button>
+      </div>
+      <form id="examForm">
+        <input type="hidden" id="examId" />
+        <div class="form-row">
+          <label>Materia *</label>
+          <input type="text" id="examSubject" required placeholder="Ej: Historia" autocomplete="off" autocorrect="off" spellcheck="true" />
+        </div>
+        <div class="form-row">
+          <label>Nombre del escrito *</label>
+          <input type="text" id="examName" required placeholder="Ej: Revolución Francesa" autocomplete="off" autocorrect="off" spellcheck="true" />
+        </div>
+        <div class="form-row two-cols">
+          <div>
+            <label>Fecha *</label>
+            <input type="date" id="examDate" required />
+          </div>
+          <div>
+            <label>Hora</label>
+            <input type="time" id="examTime" value="08:00" />
+          </div>
+        </div>
+        <div class="form-row two-cols">
+          <div>
+            <label>Minutos disponibles/día *</label>
+            <input type="number" id="examDailyMins" min="10" max="300" value="60" required />
+          </div>
+          <div>
+            <label>Objetivo de nota</label>
+            <input type="number" id="examGoal" min="1" max="10" step="0.5" value="7" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Temas (agregá uno por uno)</label>
+          <div class="topic-add">
+            <input type="text" id="topicName" placeholder="Nombre del tema" autocomplete="off" />
+            <select id="topicDiff">
+              <option value="facil">Fácil</option>
+              <option value="medio" selected>Medio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+            <button type="button" class="btn" id="btnAddTopic">+</button>
+          </div>
+          <ul class="topic-list" id="topicList"></ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" id="examCancel">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar y crear plan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: INVITAR A LA SALA (QR + enlace) -->
+  <div class="modal-overlay hidden" id="qrModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Invitar a la sala</h2>
+        <button class="btn-icon" id="qrClose" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="qr-body">
+        <div class="qr-box" id="qrBox"></div>
+        <p class="hint">Escaneá el código con la cámara del celular o compartí el enlace.</p>
+        <div class="topic-add">
+          <input type="text" id="qrLink" readonly aria-label="Enlace de invitación" />
+          <button type="button" class="btn" id="qrCopy">Copiar</button>
+        </div>
+        <p class="hint hidden" id="qrFileWarn">⚠️ Estás abriendo MindFocus desde un archivo local: este enlace solo funcionará en este dispositivo. Para invitar a otros, alojá la app en una página web (GitHub Pages, Netlify, etc.).</p>
+        <p class="hint">Quien tenga este enlace puede entrar a la sala. Compartilo solo con tus compañeros.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="storage.js"></script>
+  <script src="rooms.js"></script>
+  <script src="knowledge.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
